@@ -22,15 +22,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Check for an existing session on app start
     _checkInitialSession();
-
-    // Listen for authentication state changes and navigate
     supabase.auth.onAuthStateChange.listen((data) {
       final event = data.event;
-      if (event == AuthChangeEvent.signedIn ||
-          event == AuthChangeEvent.signedIn) {
-        // Navigate on successful login (including social and email/password)
+      final session = data.session;
+      if (event == AuthChangeEvent.signedIn && session != null) {
         _navigateToHomePage();
       }
     });
@@ -45,9 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _navigateToHomePage() {
     if (mounted) {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
     }
   }
 
@@ -58,7 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Handles the email and password login process
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -87,23 +80,30 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Handles social sign-in with Google
   Future<void> signInWithGoogle() async {
     try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
       await supabase.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: 'io.supabase.flutter://login-callback/',
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Google sign-in error: ${e.toString()}')),
-        );
+        setState(() {
+          _errorMessage = 'Google sign-in error: ${e.toString()}';
+        });
       }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  // Handles guest login
   Future<void> _handleGuestLogin() async {
     setState(() => _isLoading = true);
     try {
@@ -121,7 +121,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // Simple gradient background
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
@@ -155,7 +154,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 48),
 
-                  // Email Input Field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -180,7 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Password Input Field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
@@ -204,7 +201,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
 
-                  // Error Message
                   if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 16.0),
@@ -219,7 +215,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   const SizedBox(height: 24),
 
-                  // Login Button & Guest Login
                   _isLoading
                       ? const Center(
                           child: CircularProgressIndicator(color: Colors.white),
@@ -231,9 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF4A90E2),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -241,41 +234,30 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               child: const Text(
                                 'Login',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                             ),
                             const SizedBox(height: 16),
 
-                            // Continue with Google Button
-                            ElevatedButton.icon(
+                            // Text-based Google Button (Updated)
+                            ElevatedButton(
                               onPressed: signInWithGoogle,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                foregroundColor: Colors.black54,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
+                                foregroundColor: Colors.black87,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 elevation: 5,
+                                shadowColor: Colors.black.withOpacity(0.3),
                               ),
-                              icon: const Text(
-                                'G',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                              label: const Text(
+                              child: const Text(
                                 'Continue with Google',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
                               ),
                             ),

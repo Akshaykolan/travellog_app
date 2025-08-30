@@ -56,7 +56,6 @@ class _AddEntryPageState extends State<AddEntryPage> {
       photoUrls.add(url);
     }
 
-    // Call AI tagging if first photo exists
     if (photoUrls.isNotEmpty) {
       final res = await http.post(
         Uri.parse("https://api.imagerecognition.com/tag"),
@@ -90,20 +89,22 @@ class _AddEntryPageState extends State<AddEntryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Black background
+      backgroundColor: Colors.white, // White background for clarity
       appBar: AppBar(
-        title: const Text("Add Journal Entry"),
+        title: const Text("Add Journal Entry",style: TextStyle(color: Colors.white),),
         backgroundColor: Colors.black,
+        
         elevation: 0,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          ? const Center(child: CircularProgressIndicator(color: Colors.black))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildWhiteCard(
+                  // Title Field
+                  _buildCard(
                     child: TextField(
                       controller: _titleCtrl,
                       style: const TextStyle(color: Colors.black),
@@ -114,8 +115,10 @@ class _AddEntryPageState extends State<AddEntryPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildWhiteCard(
+                  const SizedBox(height: 16),
+
+                  // Description Field
+                  _buildCard(
                     child: TextField(
                       controller: _descCtrl,
                       maxLines: 3,
@@ -127,49 +130,78 @@ class _AddEntryPageState extends State<AddEntryPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    children: _images
-                        .map(
-                          (img) => Stack(
-                            alignment: Alignment.topRight,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  img,
-                                  height: 100,
-                                  width: 100,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () =>
-                                    setState(() => _images.remove(img)),
-                              ),
-                            ],
+                  const SizedBox(height: 16),
+
+                  // Image Picker Button
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.photo, color: Colors.black),
+                        label: const Text(
+                          "Pick Photo",
+                          style: TextStyle(color: Colors.black),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[200],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        )
-                        .toList(),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: _saveEntry,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          minimumSize: const Size(150, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Save Entry",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
-                  ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.photo, color: Colors.black),
-                    label: const Text(
-                      "Add Photo",
-                      style: TextStyle(color: Colors.black),
+                  const SizedBox(height: 16),
+
+                  // Image Preview
+                  if (_images.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      children: _images
+                          .map(
+                            (img) => Stack(
+                              alignment: Alignment.topRight,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    img,
+                                    height: 100,
+                                    width: 100,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () => setState(() => _images.remove(img)),
+                                ),
+                              ],
+                            ),
+                          )
+                          .toList(),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildWhiteCard(
+                  const SizedBox(height: 16),
+
+                  // Date Selection
+                  _buildCard(
                     child: Row(
                       children: [
                         const Icon(Icons.calendar_today, color: Colors.black),
@@ -199,14 +231,19 @@ class _AddEntryPageState extends State<AddEntryPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+
+                  // Location Info
                   if (_latitude != null)
-                    _buildWhiteCard(
+                    _buildCard(
                       child: Text(
                         "📍 Location: $_latitude, $_longitude",
                         style: const TextStyle(color: Colors.black),
                       ),
                     ),
+                  const SizedBox(height: 16),
+
+                  // Tags Display
                   if (_tags.isNotEmpty)
                     Wrap(
                       spacing: 6,
@@ -214,40 +251,32 @@ class _AddEntryPageState extends State<AddEntryPage> {
                           .map(
                             (t) => Chip(
                               label: Text(t),
-                              backgroundColor: Colors.white,
+                              backgroundColor: Colors.blue,
+                              labelStyle: const TextStyle(color: Colors.white),
                             ),
                           )
                           .toList(),
                     ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: _saveEntry,
-                    icon: const Icon(Icons.save, color: Colors.black),
-                    label: const Text(
-                      "Save Entry",
-                      style: TextStyle(color: Colors.black),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
     );
   }
 
-  // Reusable white card widget
-  Widget _buildWhiteCard({required Widget child}) {
+  // Reusable card container
+  Widget _buildCard({required Widget child}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );

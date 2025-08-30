@@ -9,7 +9,8 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: "https://hlmpsayeplthegbbokmn.supabase.co",
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsbXBzYXllcGx0aGVnYmJva21uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0NDU2MTIsImV4cCI6MjA3MjAyMTYxMn0.RKmZ69wFjk5xKU9buArcJXsCAYMpio-aqHhKpkd7m2c",
+    anonKey:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsbXBzYXllcGx0aGVnYmJva21uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0NDU2MTIsImV4cCI6MjA3MjAyMTYxMn0.RKmZ69wFjk5xKU9buArcJXsCAYMpio-aqHhKpkd7m2c",
   );
 
   runApp(const ProviderScope(child: TravelLogApp()));
@@ -20,13 +21,12 @@ class TravelLogApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Travel Journal',
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
-      home: LoginScreen(),
+      home: const LoginScreen(),
     );
   }
 }

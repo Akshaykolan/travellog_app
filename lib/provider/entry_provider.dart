@@ -37,6 +37,18 @@ class Entry {
       tags: tags ?? this.tags,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'dateTime': dateTime,
+      'address': address,
+      'photos': photos,
+      'tags': tags,
+    };
+  }
 }
 
 class EntriesNotifier extends StateNotifier<List<Entry>> {

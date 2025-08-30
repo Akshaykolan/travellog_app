@@ -52,4 +52,6 @@ class EntryModel {
       'created_at': createdAt.toIso8601String(),
     };
   }
+
+  static empty() {}
 }

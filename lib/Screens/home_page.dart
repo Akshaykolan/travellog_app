@@ -36,16 +36,16 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text(
           "My Travel Journal",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20,color: Colors.white),
         ),
         centerTitle: true,
-  elevation: 4,
-  backgroundColor: Colors.black,
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(
-      bottom: Radius.circular(24), // 👈 gives rounded bottom corners
-    ),
-  ),
+        elevation: 4,
+        backgroundColor: Colors.black,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(24), // 👈 gives rounded bottom corners
+          ),
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Colors.black))
@@ -86,9 +86,12 @@ class _HomePageState extends State<HomePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // 📸 Image Section
-                                if (e.photoUrl != null && e.photoUrl!.isNotEmpty)
+                                if (e.photoUrl != null &&
+                                    e.photoUrl!.isNotEmpty)
                                   ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(16),
+                                    ),
                                     child: Image.network(
                                       e.photoUrl!,
                                       height: 180,
@@ -100,11 +103,17 @@ class _HomePageState extends State<HomePage> {
                                   Container(
                                     height: 180,
                                     decoration: BoxDecoration(
-                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(16),
+                                      ),
                                       color: Colors.black.withOpacity(0.05),
                                     ),
                                     child: const Center(
-                                      child: Icon(Icons.photo, size: 60, color: Colors.black54),
+                                      child: Icon(
+                                        Icons.photo,
+                                        size: 60,
+                                        color: Colors.black54,
+                                      ),
                                     ),
                                   ),
 
@@ -112,7 +121,8 @@ class _HomePageState extends State<HomePage> {
                                 Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         e.title,
@@ -127,7 +137,10 @@ class _HomePageState extends State<HomePage> {
                                         e.description,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(color: Colors.black54, fontSize: 14),
+                                        style: const TextStyle(
+                                          color: Colors.black54,
+                                          fontSize: 14,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       Wrap(
@@ -137,9 +150,14 @@ class _HomePageState extends State<HomePage> {
                                             .map(
                                               (t) => Chip(
                                                 label: Text(t),
-                                                backgroundColor: Colors.black.withOpacity(0.05),
-                                                labelStyle: const TextStyle(fontSize: 12, color: Colors.black),
-                                                visualDensity: VisualDensity.compact,
+                                                backgroundColor: Colors.black
+                                                    .withOpacity(0.05),
+                                                labelStyle: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.black,
+                                                ),
+                                                visualDensity:
+                                                    VisualDensity.compact,
                                               ),
                                             )
                                             .toList(),
@@ -164,7 +182,12 @@ class _HomePageState extends State<HomePage> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (_) => AddEntryPage(entry: null, index: 0,)));
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddEntryPage(entry: null, index: 0),
+            ),
+          );
           _loadEntries();
         },
         backgroundColor: Colors.black,
