@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final supabase = Supabase.instance.client;
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -23,10 +24,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _checkInitialSession();
+
     supabase.auth.onAuthStateChange.listen((data) {
-      final event = data.event;
       final session = data.session;
-      if (event == AuthChangeEvent.signedIn && session != null) {
+      if (session != null && mounted) {
         _navigateToHomePage();
       }
     });
@@ -40,47 +41,40 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToHomePage() {
-    if (mounted) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
-    }
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const HomePage()),
+    );
   }
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        await supabase.auth.signInWithPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-      } on AuthException catch (e) {
-        setState(() {
-          _errorMessage = e.message;
-        });
-      } catch (e) {
-        setState(() {
-          _errorMessage = 'An unexpected error occurred. Please try again.';
-        });
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await supabase.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (result.session == null) {
+        throw AuthException('Login failed. Please try again.');
       }
+
+      _navigateToHomePage();
+    } on AuthException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } catch (e) {
+      setState(() => _errorMessage = 'Unexpected error: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<void> _handleGoogleLogin() async {
     try {
       setState(() {
         _isLoading = true;
@@ -92,29 +86,30 @@ class _LoginScreenState extends State<LoginScreen> {
         redirectTo: 'io.supabase.flutter://login-callback/',
       );
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Google sign-in error: ${e.toString()}';
-        });
-      }
-    } finally {
       setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _handleGuestLogin() async {
-    setState(() => _isLoading = true);
-    try {
-      await supabase.auth.signInAnonymously();
-    } on AuthException catch (e) {
-      setState(() {
-        _errorMessage = e.message;
+        _errorMessage = 'Google sign-in failed: $e';
       });
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _handleGuestLogin() async {
+    try {
+      setState(() => _isLoading = true);
+      await supabase.auth.signInAnonymously();
+    } on AuthException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -154,6 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 48),
 
+                  // Email Field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -170,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: const Icon(Icons.email, color: Colors.white),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
+                      if (value == null || value.trim().isEmpty) {
                         return 'Please enter your email';
                       }
                       return null;
@@ -178,6 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // Password Field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
@@ -201,6 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
 
+                  // Error Message
                   if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 16.0),
@@ -215,10 +213,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   const SizedBox(height: 24),
 
+                  // Login Buttons
                   _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        )
+                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
                       : Column(
                           children: [
                             ElevatedButton(
@@ -230,7 +227,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 5,
                               ),
                               child: const Text(
                                 'Login',
@@ -238,10 +234,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-
-                            // Text-based Google Button (Updated)
                             ElevatedButton(
-                              onPressed: signInWithGoogle,
+                              onPressed: _handleGoogleLogin,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: Colors.black87,
@@ -249,21 +243,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 5,
-                                shadowColor: Colors.black.withOpacity(0.3),
                               ),
                               child: const Text(
                                 'Continue with Google',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
                         ),
+
                   const SizedBox(height: 16),
+
+                  // Guest Login
                   TextButton(
                     onPressed: _handleGuestLogin,
                     child: const Text(
@@ -275,13 +266,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+
+                  // Register Redirect
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const RegistrationScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const RegistrationScreen()),
                       );
                     },
                     child: const Text(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:travellog_app/provider/entry_provider.dart';
-import 'package:travellog_app/screens/add_entry_screen.dart'; // Import AddEntryPage
-import 'package:travellog_app/models/entry_model.dart'; // Import Entry model
+import 'package:travellog_app/screens/add_entry_screen.dart';
+import 'package:travellog_app/models/entry_model.dart';
 
 class EntryDetailScreen extends ConsumerWidget {
   final String entryId;
@@ -11,38 +11,53 @@ class EntryDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entry = ref.watch(entriesProvider).firstWhere((e) => e.id == entryId);
+    final entries = ref.watch(entriesProvider);
+    final entry = entries.firstWhere(
+      (e) => e.id == entryId,
+      orElse: () => Entry(
+        id: '',
+        title: 'Entry not found',
+        description: '',
+        tags: [],
+        photos: [], dateTime: '',
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: Text(entry.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => AddEntryPage(entry: entry),
+        actions: entry.id.isNotEmpty
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AddEntryPage(entry: entry, index: entries.indexOf(entry)),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ],
+              ]
+            : null,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(entry.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Text(entry.description),
-            const SizedBox(height: 16),
-            Text('Tags: ${entry.tags.join(', ')}'),
-            const SizedBox(height: 16),
-            Image.network(entry.photos.isNotEmpty ? entry.photos[0] : 'placeholder_image_url'),
-          ],
-        ),
-      ),
+      body: entry.id.isEmpty
+          ? const Center(child: Text('Entry not found'))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(entry.description, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 16),
+                  Text('Tags: ${entry.tags.join(', ')}'),
+                  const SizedBox(height: 16),
+                  entry.photos.isNotEmpty
+                      ? Image.network(entry.photos[0])
+                      : Image.asset('assets/images/placeholder.png'), // make sure this asset exists
+                ],
+              ),
+            ),
     );
   }
 }
