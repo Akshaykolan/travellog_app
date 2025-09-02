@@ -13,7 +13,7 @@ Future<void> main() async {
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsbXBzYXllcGx0aGVnYmJva21uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0NDU2MTIsImV4cCI6MjA3MjAyMTYxMn0.RKmZ69wFjk5xKU9buArcJXsCAYMpio-aqHhKpkd7m2c",
   );
 
-  runApp(const ProviderScope(child: TravelLogApp()));
+  runApp( ProviderScope(child: TravelLogApp()));
 }
 
 class TravelLogApp extends StatelessWidget {

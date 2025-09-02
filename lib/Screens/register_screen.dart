@@ -147,10 +147,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   const Text(
                     'Join Travlog to capture your memories',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.white70),
                   ),
                   const SizedBox(height: 48),
 
@@ -216,7 +213,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      prefixIcon: const Icon(Icons.location_city, color: Colors.white),
+                      prefixIcon: const Icon(
+                        Icons.location_city,
+                        color: Colors.white,
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -242,7 +242,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      prefixIcon: const Icon(Icons.calendar_today, color: Colors.white),
+                      prefixIcon: const Icon(
+                        Icons.calendar_today,
+                        color: Colors.white,
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -275,7 +278,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           });
                         },
                         icon: Icon(
-                          _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                          _isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.white,
                         ),
                       ),
@@ -311,7 +316,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           });
                         },
                         icon: Icon(
-                          _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                          _isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.white,
                         ),
                       ),
@@ -381,7 +388,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           recognizer: TapGestureRecognizer()
                             ..onTap = () {
                               Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                MaterialPageRoute(
+                                  builder: (_) => const LoginScreen(),
+                                ),
                               );
                             },
                         ),

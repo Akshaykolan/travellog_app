@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:travellog_app/Screens/home_page.dart';
@@ -26,12 +25,26 @@ class _LoginScreenState extends State<LoginScreen> {
     _checkInitialSession();
 
     supabase.auth.onAuthStateChange.listen((data) {
-      final session = data.session;
-      if (session != null && mounted) {
-        _navigateToHomePage();
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      print("Auth state changed: $event");
+
+      if (session != null) {
+        if (event == AuthChangeEvent.signedIn) {
+          print('✅ User logged in: ${session.user.email}');
+          _navigateToHomePage();
+        } else if (event == AuthChangeEvent.initialSession) {
+          print("ℹ️ Initial session restored: ${session.user.email}");
+          _navigateToHomePage();
+        }
+      } else {
+        print("⚠️ No active session");
       }
     });
   }
+
+  // https://hlmpsayeplthegbbokmn.supabase.co
 
   void _checkInitialSession() {
     final session = supabase.auth.currentSession;
@@ -41,9 +54,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToHomePage() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomePage()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
   }
 
   Future<void> _handleLogin() async {
@@ -215,7 +228,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Login Buttons
                   _isLoading
-                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                      ? const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
                       : Column(
                           children: [
                             ElevatedButton(
@@ -223,14 +238,19 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF4A90E2),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               child: const Text(
                                 'Login',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -239,14 +259,19 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: Colors.black87,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               child: const Text(
                                 'Continue with Google',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
@@ -272,7 +297,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const RegistrationScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const RegistrationScreen(),
+                        ),
                       );
                     },
                     child: const Text(
