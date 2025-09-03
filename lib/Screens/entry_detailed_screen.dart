@@ -31,11 +31,12 @@ class EntryDetailScreen extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AddEntryPage(entry: entry, index: entries.indexOf(entry)),
-                      ),
-                    );
+                    // Navigator.of(context).push(
+                    //   MaterialPageRoute(
+                    //     builder: (_) => AddEntryPage(entry: entry, index: entries.indexOf(entry)),
+                    //   ),
+                    // );
+                    
                   },
                 ),
               ]

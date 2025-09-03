@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:location/location.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 
 class AddEntryPage extends StatefulWidget {
-  const AddEntryPage({super.key, required entry, required int index});
+  final Map<String, dynamic>? entry;
+
+  const AddEntryPage({super.key, this.entry});
 
   @override
   State<AddEntryPage> createState() => _AddEntryPageState();
@@ -17,19 +18,17 @@ class AddEntryPage extends StatefulWidget {
 class _AddEntryPageState extends State<AddEntryPage> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  List<File> _images = [];
+  File? _image;
   DateTime _selectedDate = DateTime.now();
   double? _latitude;
   double? _longitude;
   List<String> _tags = [];
-  bool _loading = false;
+  bool _saving = false;
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-    final img = await picker.pickImage(source: ImageSource.gallery);
-    if (img != null && _images.length < 5) {
-      setState(() => _images.add(File(img.path)));
-    }
+    final img = await picker.pickImage(source: source, imageQuality: 80);
+    if (img != null) setState(() => _image = File(img.path));
   }
 
   Future<void> _fetchLocation() async {
@@ -45,240 +44,269 @@ class _AddEntryPageState extends State<AddEntryPage> {
   }
 
   Future<void> _saveEntry() async {
-    setState(() => _loading = true);
-    final supabase = Supabase.instance.client;
+  final supabase = Supabase.instance.client;
 
-    List<String> photoUrls = [];
-    for (var img in _images) {
-      final fileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
-      await supabase.storage.from('photos').upload(fileName, img);
-      final url = supabase.storage.from('photos').getPublicUrl(fileName);
-      photoUrls.add(url);
+  try {
+    setState(() => _saving = true);
+
+    // 🔹 Check if user is logged in
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw Exception("User not logged in – please sign in again");
     }
 
-    if (photoUrls.isNotEmpty) {
-      final res = await http.post(
-        Uri.parse("https://api.imagerecognition.com/tag"),
-        body: jsonEncode({"url": photoUrls.first}),
-      );
-      if (res.statusCode == 200) {
-        _tags = List<String>.from(jsonDecode(res.body)["tags"]);
+    String? photoUrl;
+    if (_image != null) {
+      final fileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
+
+      try {
+        // 🔹 Confirm bucket exists
+        final bucket = supabase.storage.from('photos');
+        final uploaded = await bucket.uploadBinary(
+          fileName,
+          await _image!.readAsBytes(),
+          fileOptions: const FileOptions(contentType: 'image/jpeg'),
+        );
+
+        print("✅ Upload response: $uploaded");
+
+        if (uploaded.isEmpty) throw Exception("Upload failed!");
+        photoUrl = bucket.getPublicUrl(fileName);
+      } catch (e, st) {
+        print("❌ Upload error: $e");
+        print("📌 Stacktrace: $st");
+        rethrow;
       }
     }
 
-    await supabase.from('entries').insert({
-      "title": _titleCtrl.text,
-      "description": _descCtrl.text,
-      "photo_urls": photoUrls,
+    final data = {
+      "user_id": userId,
+      "title": _titleCtrl.text.trim(),
+      "description": _descCtrl.text.trim(),
+      "photo_url": photoUrl != null ? [photoUrl] : [],
       "tags": _tags,
       "latitude": _latitude,
       "longitude": _longitude,
       "created_at": _selectedDate.toIso8601String(),
-    });
+    };
 
-    if (mounted) Navigator.pop(context);
-    setState(() => _loading = false);
+    if (widget.entry == null) {
+      await supabase.from('entries').insert(data);
+    } else {
+      await supabase.from('entries').update(data).eq('id', widget.entry!['id']);
+    }
+
+    if (mounted) {
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Entry saved successfully!")),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      print("❌ Save error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _saving = false);
   }
+}
 
   @override
   void initState() {
     super.initState();
     _fetchLocation();
+
+    if (widget.entry != null) {
+      _titleCtrl.text = widget.entry!['title'] ?? "";
+      _descCtrl.text = widget.entry!['description'] ?? "";
+      _selectedDate =
+          DateTime.tryParse(widget.entry!['created_at'] ?? "") ??
+          DateTime.now();
+      _latitude = widget.entry!['latitude'];
+      _longitude = widget.entry!['longitude'];
+      final t = widget.entry!['tags'] ?? "";
+      _tags = t
+          .toString()
+          .split(",")
+          .where((e) => e.trim().isNotEmpty)
+          .toList();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white, // White background for clarity
       appBar: AppBar(
-        title: const Text("Add Journal Entry",style: TextStyle(color: Colors.white),),
-        backgroundColor: Colors.black,
-        
-        elevation: 0,
+  title: Text(
+    widget.entry == null ? "New Journey" : "Edit Journey",
+    style: const TextStyle(
+      fontWeight: FontWeight.bold,
+      fontSize: 20,
+      color: Colors.white,
+    ),
+  ),
+  elevation: 6,
+  backgroundColor: Colors.transparent,
+  flexibleSpace: Container(
+    decoration: const BoxDecoration(
+      color: Colors.black, // pure black background
+      borderRadius: BorderRadius.vertical(
+        bottom: Radius.circular(24), // rounded bottom
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title Field
-                  _buildCard(
-                    child: TextField(
-                      controller: _titleCtrl,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(
-                        labelText: "Title",
-                        labelStyle: TextStyle(color: Colors.grey),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+    ),
+  ),
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.vertical(
+      bottom: Radius.circular(24),
+    ),
+  ),
+),
 
-                  // Description Field
-                  _buildCard(
-                    child: TextField(
-                      controller: _descCtrl,
-                      maxLines: 3,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(
-                        labelText: "Description",
-                        labelStyle: TextStyle(color: Colors.grey),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
 
-                  // Image Picker Button
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _pickImage,
-                        icon: const Icon(Icons.photo, color: Colors.black),
-                        label: const Text(
-                          "Pick Photo",
-                          style: TextStyle(color: Colors.black),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[200],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: _saveEntry,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          minimumSize: const Size(150, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          "Save Entry",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+           // Title Card
+Card(
+  elevation: 6,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(15),
+  ),
+  child: Padding(
+    padding: const EdgeInsets.all(16),
+    child: TextField(
+      controller: _titleCtrl,
+      decoration: const InputDecoration(
+        labelText: "Title",
+        border: InputBorder.none, // removes the box
+      ),
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    ),
+  ),
+),
+const SizedBox(height: 16),
 
-                  // Image Preview
-                  if (_images.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      children: _images
-                          .map(
-                            (img) => Stack(
-                              alignment: Alignment.topRight,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.file(
-                                    img,
-                                    height: 100,
-                                    width: 100,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.close,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed: () => setState(() => _images.remove(img)),
-                                ),
-                              ],
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  const SizedBox(height: 16),
+// Description Card
+Card(
+  elevation: 6,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(15),
+  ),
+  child: Padding(
+    padding: const EdgeInsets.all(16),
+    child: TextField(
+      controller: _descCtrl,
+      maxLines: 5,
+      decoration: const InputDecoration(
+        labelText: "Description",
+        border: InputBorder.none, // removes the box
+      ),
+    ),
+  ),
+),
 
-                  // Date Selection
-                  _buildCard(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, color: Colors.black),
-                        const SizedBox(width: 8),
-                        Text(
-                          DateFormat.yMMMd().format(_selectedDate),
-                          style: const TextStyle(color: Colors.black),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: _selectedDate,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) {
-                              setState(() => _selectedDate = picked);
-                            }
-                          },
-                          child: const Text(
-                            "Change Date",
-                            style: TextStyle(color: Colors.blue),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Location Info
-                  if (_latitude != null)
-                    _buildCard(
-                      child: Text(
-                        "📍 Location: $_latitude, $_longitude",
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-
-                  // Tags Display
-                  if (_tags.isNotEmpty)
-                    Wrap(
-                      spacing: 6,
-                      children: _tags
-                          .map(
-                            (t) => Chip(
-                              label: Text(t),
-                              backgroundColor: Colors.blue,
-                              labelStyle: const TextStyle(color: Colors.white),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                ],
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: Text(DateFormat.yMMMd().format(_selectedDate)),
+              trailing: TextButton(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) setState(() => _selectedDate = picked);
+                },
+                child: const Text("Change"),
               ),
             ),
-    );
-  }
-
-  // Reusable card container
-  Widget _buildCard({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+            const SizedBox(height: 16),
+           Row(
+  children: [
+    Expanded(
+      child: ElevatedButton.icon(
+        onPressed: () => _pickImage(ImageSource.camera),
+        icon: const Icon(Icons.camera_alt),
+        label: const Text("Camera"),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
       ),
-      child: child,
+    ),
+    const SizedBox(width: 10),
+    Expanded(
+      child: ElevatedButton.icon(
+        onPressed: () => _pickImage(ImageSource.gallery),
+        icon: const Icon(Icons.photo),
+        label: const Text("Gallery"),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
+      ),
+    ),
+  ],
+),
+
+            if (_image != null)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(_image!, height: 180, fit: BoxFit.cover),
+                ),
+              ),
+            const SizedBox(height: 16),
+            if (_latitude != null && _longitude != null)
+              Text("📍 Location: $_latitude , $_longitude"),
+            const SizedBox(height: 20),
+            Center(
+              child: ElevatedButton.icon(
+                icon: _saving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(
+                  _saving
+                      ? "Saving..."
+                      : widget.entry == null
+                      ? "Save Entry"
+                      : "Update Entry",
+                ),
+                onPressed: _saving ? null : _saveEntry,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 6,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

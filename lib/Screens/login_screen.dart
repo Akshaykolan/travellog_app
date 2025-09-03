@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:travellog_app/Screens/home_page.dart';
 import 'package:travellog_app/Screens/register_screen.dart';
@@ -31,12 +31,12 @@ class _LoginScreenState extends State<LoginScreen> {
       print("Auth state changed: $event");
 
       if (session != null) {
-        if (event == AuthChangeEvent.signedIn) {
+        if (event == AuthChangeEvent.signedIn ||
+            event == AuthChangeEvent.initialSession) {
           print('✅ User logged in: ${session.user.email}');
-          _navigateToHomePage();
-        } else if (event == AuthChangeEvent.initialSession) {
-          print("ℹ️ Initial session restored: ${session.user.email}");
-          _navigateToHomePage();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _navigateToHomePage();
+          });
         }
       } else {
         print("⚠️ No active session");
@@ -44,19 +44,19 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  // https://hlmpsayeplthegbbokmn.supabase.co
-
   void _checkInitialSession() {
     final session = supabase.auth.currentSession;
     if (session != null) {
-      _navigateToHomePage();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigateToHomePage();
+      });
     }
   }
 
   void _navigateToHomePage() {
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const HomePage()),
+    );
   }
 
   Future<void> _handleLogin() async {
@@ -77,7 +77,9 @@ class _LoginScreenState extends State<LoginScreen> {
         throw AuthException('Login failed. Please try again.');
       }
 
-      _navigateToHomePage();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigateToHomePage();
+      });
     } on AuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (e) {
@@ -238,9 +240,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF4A90E2),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -259,9 +260,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: Colors.black87,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),

@@ -4,8 +4,8 @@ class EntryModel {
   final String id;
   final String title;
   final String description;
-  final String? photoUrl;
-  final String? address; // Added address field for consistency
+  final List<String> photoUrls; // ✅ handles multiple photos
+  final String? address;
   final List<String> tags;
   final double? latitude;
   final double? longitude;
@@ -15,7 +15,7 @@ class EntryModel {
     required this.id,
     required this.title,
     required this.description,
-    this.photoUrl,
+    required this.photoUrls,
     this.address,
     required this.tags,
     this.latitude,
@@ -26,16 +26,18 @@ class EntryModel {
   factory EntryModel.fromMap(Map<String, dynamic> map) {
     return EntryModel(
       id: map['id'] as String,
-      title: map['title'] as String,
-      description: map['description'] as String,
-      photoUrl: map['photo_url'] as String?,
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      photoUrls: List<String>.from(map['photo_urls'] ?? []), // ✅ ARRAY
       address: map['address'] as String?,
-      tags: (map['tags'] as List?)?.map((t) => t.toString()).toList() ?? [],
+      tags: List<String>.from(map['tags'] ?? []), // ✅ ARRAY
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
       createdAt: map['created_at'] is String
           ? DateTime.tryParse(map['created_at']) ?? DateTime.now()
-          : (map['created_at'] is DateTime ? map['created_at'] : DateTime.now()),
+          : (map['created_at'] is DateTime
+              ? map['created_at']
+              : DateTime.now()),
     );
   }
 
@@ -44,7 +46,7 @@ class EntryModel {
       'id': id,
       'title': title,
       'description': description,
-      'photo_url': photoUrl,
+      'photo_urls': photoUrls, // ✅ save as array
       'address': address,
       'tags': tags,
       'latitude': latitude,
@@ -53,5 +55,22 @@ class EntryModel {
     };
   }
 
-  static empty() {}
+  /// ✅ helper to preview first photo
+  String? get photoUrl =>
+      photoUrls.isNotEmpty ? photoUrls.first : null;
+
+  /// ✅ static empty for new entry
+  static EntryModel empty() {
+    return EntryModel(
+      id: '',
+      title: '',
+      description: '',
+      photoUrls: [],
+      address: null,
+      tags: [],
+      latitude: null,
+      longitude: null,
+      createdAt: DateTime.now(),
+    );
+  }
 }

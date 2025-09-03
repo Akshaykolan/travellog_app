@@ -26,7 +26,7 @@ class TravelLogApp extends StatelessWidget {
       title: 'Travel Journal',
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
-      home: const LoginScreen(),
+      home: LoginScreen(),
     );
   }
 }
